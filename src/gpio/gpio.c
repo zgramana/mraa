@@ -149,7 +149,7 @@ mraa_gpio_init(int pin)
         syslog(LOG_ERR, "gpio: pin %i beyond platform definition", pin);
         return NULL;
     }
-    if (board->pins[pin].capabilites.gpio != 1) {
+    if (board->pins[pin].capabilities.gpio != 1) {
         syslog(LOG_ERR, "gpio: pin %i not capable of gpio", pin);
         return NULL;
     }

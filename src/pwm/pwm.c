@@ -190,7 +190,7 @@ mraa_pwm_init(int pin)
         syslog(LOG_ERR, "pwm: pin %i beyond platform definition", pin);
         return NULL;
     }
-    if (plat->pins[pin].capabilites.pwm != 1) {
+    if (plat->pins[pin].capabilities.pwm != 1) {
         syslog(LOG_ERR, "pwm: pin not capable of pwm");
         return NULL;
     }
@@ -203,7 +203,7 @@ mraa_pwm_init(int pin)
             return NULL;
     }
 
-    if (plat->pins[pin].capabilites.gpio == 1) {
+    if (plat->pins[pin].capabilities.gpio == 1) {
         // This deserves more investigation
         mraa_gpio_context mux_i;
         mux_i = mraa_gpio_init_raw(plat->pins[pin].gpio.pinmap);

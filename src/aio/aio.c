@@ -102,7 +102,7 @@ mraa_aio_init(unsigned int aio)
         return NULL;
     }
 
-    if (plat->pins[pin].capabilites.aio != 1) {
+    if (plat->pins[pin].capabilities.aio != 1) {
         syslog(LOG_ERR, "aio: pin uncapable of aio");
         free(dev);
         return NULL;
