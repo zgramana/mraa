@@ -7,5 +7,5 @@ Name: mraa
 Description: Low Level Skeleton Library for Communication
 Version: @mraa_VERSION_STRING@
 
-Libs: -L${libdir} -lmraajava
+Libs: -L${libdir} -lmraacsharp
 Cflags: -I${includedir}
