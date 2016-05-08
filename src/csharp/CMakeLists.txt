@@ -1,4 +1,4 @@
-# FIND_PACKAGE (JNI REQUIRED)
+# FIND_PACKAGE (MONO REQUIRED)
 
 include_directories (
   ${CSHARP_INCLUDE_PATH}
@@ -7,7 +7,7 @@ include_directories (
 )
 
 # SWIG treats SWIG_FLAGS as a list and not a string so semicolon seperation is required
-set_source_files_properties (mraacsharp.i PROPERTIES SWIG_FLAGS ";-I${CMAKE_BINARY_DIR}/src")
+set_source_files_properties (mraacsharp.i PROPERTIES SWIG_FLAGS ";-namespace;Mraa;-I${CMAKE_BINARY_DIR}/src")
 set_source_files_properties (mraacsharp.i PROPERTIES CPLUSPLUS ON)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive -DCSHARPCALLBACK")
@@ -23,7 +23,7 @@ swig_link_libraries (mraacsharp ${CSHARP_LIBRARIES} ${mraa_LIBS})
 add_custom_command (TARGET mraacsharp
   POST_BUILD
   COMMAND cmake -E echo "Compiling csharp.."  
-  COMMAND ${CSHARPC} /noconfig /debug:pdbonly /optimize+ /target:library /define:TRACE /nostdlib /platform:x86 /out:Mraa.dll *.cs /reference:$ENV{MONO_PATH}/System.Core.dll /reference:$ENV{MONO_PATH}/mscorlib.dll /warn:4  
+  COMMAND ${CSHARPC} /noconfig /debug:pdbonly /optimize+ /target:library /define:TRACE /nostdlib /platform:x86 /out:Mraa.dll ${CMAKE_CURRENT_SOURCE_DIR}/Extensions.cs *.cs /reference:$ENV{MONO_PATH}/System.Core.dll /reference:$ENV{MONO_PATH}/mscorlib.dll /warn:4  
 )
 
 if (DOXYGEN_FOUND)
