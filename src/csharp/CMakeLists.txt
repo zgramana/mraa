@@ -7,7 +7,7 @@ include_directories (
 )
 
 # SWIG treats SWIG_FLAGS as a list and not a string so semicolon seperation is required
-set_source_files_properties (mraacsharp.i PROPERTIES SWIG_FLAGS ";-namespace;Mraa;-I${CMAKE_BINARY_DIR}/src")
+set_source_files_properties (mraacsharp.i PROPERTIES SWIG_FLAGS ";-namespace;Mraa;-dllimport;libmraacsharp.so;-I${CMAKE_BINARY_DIR}/src")
 set_source_files_properties (mraacsharp.i PROPERTIES CPLUSPLUS ON)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive -DCSHARPCALLBACK")
