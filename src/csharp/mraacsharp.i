@@ -7,12 +7,7 @@
 %include typemaps.i
 %include arrays_csharp.i
 
-// %typemap(ctype) int "int"
-//%typemap(cstype) int length "int"
-//%typemap(imtype) int length "int"
-
-//%typemap(ctype) (const uint8_t *data, int length) "byte[]"
-%typemap(cstype) (const uint8_t* data, int length) "byte[]"
+%typemap(cstype) (const uint8_t* data, int length) "byte[]" 
 %typemap(imtype, out="IntPtr") (const uint8_t* data, int length) "byte[]"
 %typemap(csin) (const uint8_t* data, int length) "$csinput"
 
@@ -23,8 +18,42 @@
     $2 = sizeof($1)/sizeof($1[0]);
 }
 
-%apply (const uint8_t* data, int length) { (uint8_t* data, int length) }
+// Handle buffers as return values.
+%typemap(csout, excode=SWIGEXCODE) uint8_t* {
+    var ret = $imcall;
+   $excode;
+    var buffer = new byte[txBuf.Length];
+    Marshal.Copy(ret, buffer, 0, txBuf.Length);
+    return buffer;
+}
 
+%apply (const uint8_t* data, int length) { (uint8_t* txBuf, int length) }
+%apply (const uint8_t* data, int length) { (uint16_t* txBuf, int length) }
+
+// %typemap(out) uint8_t* "byte[]"
+%typemap(cstype) uint8_t* write "byte[]" 
+
+%typemap(cstype) (uint8_t* txbuf) "byte[]" 
+//%typemap(imtype, out="byte[]") (uint8_t* txbuf) "byte[]"
+%typemap(csin) (uint8_t* txbuf) "$csinput"
+
+%typemap(cstype) (uint8_t* rxbuf) "byte[]" 
+//%typemap(ctype) (uint8_t* rxbuf) "byte[]" 
+//%typemap(imtype, out="byte[]") (uint8_t* rxbuf) "byte[]"
+%typemap(csin) (uint8_t* rxbuf) "$csinput"
+
+%typemap(cstype) (uint8_t* Write) "byte[]" 
+
+
+//%apply int INPUT[] {uint8_t* txBuf}
+//%apply int OUTPUT[] {uint8_t* rxBuf}
+// %apply byte INPUT[] {uint8_t* txBuf}
+// %apply byte OUTPUT[] {uint8_t* rxBuf}
+// %apply ushort INPUT[] {uint16_t* txBug}
+// %apply ushort OUTPUT[] {uint16_t* rxBuf}
+
+// SPI Write Transfer
+//%typemap(cstype) (uint8_t* data, uint8_t* rxbuf, int length) "byte[], byte[]"
 
 // GOOD STUFF HERE
 // %typemap(cstype) (const uint8_t* data, int length) "Byte[]"
