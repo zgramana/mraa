@@ -8,7 +8,7 @@
 %typemap(javain) (uint8_t *txBuf, int length) "$javainput"
 
 %typemap(in,numinputs=1) (uint8_t *txBuf, int length) {
-  $1 = JCALL2(GetByteArrayElements, jenv, $input, NULL);
+  $1 = (uint8_t *) JCALL2(GetByteArrayElements, jenv, $input, NULL);
   $2 = JCALL1(GetArrayLength, jenv, $input);
 }
 
@@ -23,7 +23,7 @@
 }
 
 %typemap(argout) (uint8_t *data, int length) {
-  JCALL3(ReleaseByteArrayElements, jenv, $input, $1, JNI_COMMIT);
+  JCALL3(ReleaseByteArrayElements, jenv, $input, (jbyte *) $1, JNI_COMMIT);
 }
 
 %typemap(jtype) (const uint8_t *data, int length) "byte[]"
@@ -31,7 +31,16 @@
 %typemap(jni) (const uint8_t *data, int length) "jbyteArray"
 %typemap(javain) (const uint8_t *data, int length) "$javainput"
 %typemap(in) (const uint8_t *data, int length) {
-  $1 = JCALL2(GetByteArrayElements, jenv, $input, NULL);
+  $1 = (uint8_t *) JCALL2(GetByteArrayElements, jenv, $input, NULL);
+  $2 = JCALL1(GetArrayLength, jenv, $input);
+}
+
+%typemap(jtype) (uint8_t *data, int length) "byte[]"
+%typemap(jstype) (uint8_t *data, int length) "byte[]"
+%typemap(jni) (uint8_t *data, int length) "jbyteArray"
+%typemap(javain) (uint8_t *data, int length) "$javainput"
+%typemap(in) (uint8_t *data, int length) {
+  $1 = (uint8_t *)  JCALL2(GetByteArrayElements, jenv, $input, NULL);
   $2 = JCALL1(GetArrayLength, jenv, $input);
 }
 
@@ -95,6 +104,39 @@ class Spi;
         } catch (UnsatisfiedLinkError e) {
             System.err.println("Native code library failed to load. \n" + e);
             System.exit(1);
+        }
+
+        if((mraa.class.getPackage().getSpecificationVersion() != null)
+                &&  !(mraa.class.getPackage().getSpecificationVersion().equals("0.0"))
+                && (mraa.getVersion() != null)){
+            String javaAPIVersion = mraa.class.getPackage().getSpecificationVersion();
+            String nativeAPIVersion = mraa.getVersion().substring(1);
+
+            String javaMajor = javaAPIVersion.substring(0, javaAPIVersion.indexOf('.'));
+            String nativeMajor = nativeAPIVersion.substring(0, nativeAPIVersion.indexOf('.'));
+
+            if(Integer.parseInt(javaMajor) < Integer.parseInt(nativeMajor)){
+                System.err.println("Java library is out of date. Please update the Java library.");
+                System.err.println("Native library version is " + nativeAPIVersion + ". Java library version is " + javaAPIVersion + ".");
+                System.exit(1);
+            }
+            if(Integer.parseInt(javaMajor) > Integer.parseInt(nativeMajor)){
+                System.err.println("Native library is out of date. Please update the Native library.");
+                System.err.println("Native library version is " + nativeAPIVersion + ". Java library version is " + javaAPIVersion + ".");
+                System.exit(1);
+            }
+
+            String javaMinor = javaAPIVersion.substring(javaMajor.length() + 1, javaAPIVersion.indexOf('.', javaMajor.length() + 1));
+            String nativeMinor = nativeAPIVersion.substring(nativeMajor.length() + 1, nativeAPIVersion.indexOf('.', nativeMajor.length() + 1));
+
+            if(Integer.parseInt(javaMinor) < Integer.parseInt(nativeMinor)){
+                System.err.println("Java library is out of date. Please consider updating the Java library.");
+                System.err.println("Native library version is " + nativeAPIVersion + ". Java library version is " + javaAPIVersion + ".");
+            }
+            if(Integer.parseInt(javaMinor) > Integer.parseInt(nativeMinor)){
+                System.err.println("Native library is out of date. Please consider updating the Native library.");
+                System.err.println("Native library version is " + nativeAPIVersion + ". Java library version is " + javaAPIVersion + ".");
+            }
         }
     }
 %}

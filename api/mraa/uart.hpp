@@ -40,7 +40,7 @@ namespace mraa
  *
  * This file defines the UART interface for libmraa
  *
- * @snippet Uart-example.cpp Interesting
+ * @snippet uart.cpp Interesting
  */
 class Uart
 {
@@ -64,7 +64,7 @@ class Uart
      * Uart Constructor, takes a string to the path of the serial
      * interface that is needed.
      *
-     * @param uart the index of the uart set to use
+     * @param path the index of the uart set to use
      */
     Uart(std::string path)
     {
@@ -75,6 +75,20 @@ class Uart
         }
     }
 
+    /**
+     * Uart Constructor, takes a pointer to the UART context and initialises
+     * the UART class
+     *
+     * @param uart_context void * to a UART context
+     */
+    Uart(void* uart_context)
+    {
+        m_uart = (mraa_uart_context) uart_context;
+
+        if (m_uart == NULL) {
+            throw std::invalid_argument("Invalid UART context");
+        }
+    }
     /**
      * Uart destructor
      */
@@ -110,7 +124,7 @@ class Uart
     }
 
     /**
-     * Write bytes in String object to a device
+     * Write bytes in char* buffer to a device
      *
      * @param data buffer pointer
      * @param length maximum size of buffer
@@ -146,7 +160,7 @@ class Uart
     /**
      * Write bytes in String object to a device
      *
-     * @param string to write
+     * @param data string to write
      * @return the number of bytes written, or -1 if an error occurred
      */
     int
@@ -181,6 +195,21 @@ class Uart
     flush()
     {
         return (Result) mraa_uart_flush(m_uart);
+    }
+
+    /**
+     * Send a break to the device.
+     * Blocks until complete.
+     *
+     * @param duration When 0, send a break lasting at least 250
+     * milliseconds, and not more than 500 milliseconds.  When non zero,
+     * the break duration is implementation specific.
+     * @return Result of operation
+     */
+    Result
+    sendBreak(int duration)
+    {
+        return (Result) mraa_uart_sendbreak(m_uart, duration);
     }
 
     /**
@@ -244,12 +273,11 @@ class Uart
     /**
      * Set the blocking state for write operations
      *
-     * @param dev The UART context
      * @param nonblock new nonblocking state
      * @return Result of operation
      */
     Result
-    SetNonBlocking(bool nonblock)
+    setNonBlocking(bool nonblock)
     {
         return (Result) mraa_uart_set_non_blocking(m_uart, nonblock);
     }

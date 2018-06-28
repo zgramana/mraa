@@ -36,7 +36,7 @@ namespace mraa
  *
  * This file defines the aio interface for libmraa
  *
- * @snippet AioA0.cpp Interesting
+ * @snippet aio.cpp Interesting
  */
 class Aio
 {
@@ -47,11 +47,26 @@ class Aio
      *
      * @param pin channel number to read ADC inputs
      */
-    Aio(unsigned int pin)
+    Aio(int pin)
     {
         m_aio = mraa_aio_init(pin);
         if (m_aio == NULL) {
             throw std::invalid_argument("Invalid AIO pin specified - do you have an ADC?");
+        }
+    }
+    /**
+     * Aio Constructor, takes a pointer to the AIO context and initialises
+     * the AIO class. Aio pins are always 0 indexed reguardless of their
+     * position. Check your board mapping for details. An arduino style layout
+     * will have A0 as pin14 but AIO0.
+     *
+     * @param aio_context void * to an AIO context
+     */
+    Aio(void* aio_context)
+    {
+        m_aio = (mraa_aio_context) aio_context;
+        if (m_aio == NULL) {
+            throw std::invalid_argument("Invalid AIO context");
         }
     }
     /**

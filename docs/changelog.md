@@ -5,6 +5,103 @@ This changelog is meant as a quick & rough guide to what has changed between
 versions. The API is now fairly stable but when new calls/features are added
 they are listed here. Anything pre 0.2.x is ignored.
 
+**1.9.0**
+  * Added support for RPi Zero W
+  * Added support for MIPS based Omega2 and Linkit Smart 7688
+  * New APIs for sysfs onboard LED control using the gpio-leds driver
+  * Restructured and cleaned-up examples
+  * Improved documentation generation and CI integration
+  * Static analysis fixes, added SonarQube badge
+  * Enhanced Node.js detection on some Linux distros (OpenSUSE)
+
+**1.8.0**
+  * Added Up2 support & grovePi subplatform support
+  * Various improvements on 96board, rpi, beaglebone & Up boards
+  * CMake 3.8+ improvements
+  * Peripheral I/O improvements
+  * Json platform improvements
+  * Static analysis cleanup using SonarQube
+
+**1.7.0**
+  * Peripheral I/O support for Android Things
+  * Deprecation of node v0.10.x and 0.12.x
+  * Documentation improvements
+
+**1.6.1**
+  * mraa-deinit bug fix
+  * rpi3 fix
+  * ALTERA_SOCFPGA -> DE_NANO_SOC
+
+**1.6.0**
+  * de-10 nano board support
+  * Improved Intel Joule support & renamed from GT_TUCHUCK to Joule
+  * Improved RPI3 support
+  * Fixes for UP, 96boards & phyboard-wega
+  * Call mraa_deinit with a gcc destructor attribute
+
+**1.5.1**
+  * Small memleaks plugged
+  * imraa useless arp statements removed
+  * NPM 1.5.0 did not 100% match real 1.5.0 tag, this resolves this
+
+**1.5.0**
+  * imraa now uses argp, slight option changes, you need to use -a to flash a 101
+  * Joule i2c enumeration much improved, uses pci id
+  * Firmata add a spinlock to remove possible race condition
+  * Mock Uart functionality
+
+**1.4.0**
+  * Add support for Siemens SIMATIC IOT2000
+  * Cmake now enables much more error detection depending on compiler support
+  * Mraa Maven packages now enabled
+  * Galileo Gen2 AIO fix using pincmd
+  * Adding an already added firmata platform now returns MRAA_SUCCESS
+  * Cmake no longer tags builds without git as '-dirty' version.c for easier
+    packaging support
+
+**1.3.0**
+  * Fix GT GPIO bugs
+  * Mock SPI and travis now uses mock and tests it
+  * RPI zero support
+
+**1.2.3**
+  * Revert 1.2.1 binding.gyp changed that had side effect of enabling JSONPLAT in mraa.c
+  * improve travis.ci to load mraa.node as compiled from make npmpkg target
+
+**1.2.2**
+  * remove jsonplat from prehashed npm builds (see docs/npm.md for details)
+  * internal spelling fix
+
+**1.2.1**
+  * Fix npm pkg build - no other fix
+
+**1.2.0**
+  * JSON platform support
+  * mock I2c functionality
+  * Intel Joule PWM fix
+  * AIO firmata bug fix
+
+**1.1.2**
+  * Mock platform support
+  * mraa-i2c treats i2c buses by default as linux
+  * Intel Joule i2c fixes
+  * travis now uses 14.04 instead of 12.04
+
+**1.1.1**
+  * IIO 4.6 kernel matrix support
+  * Intel Joule radio led support
+  * mraa_init_io() examples
+  * MRAAPLATFORMFORCE fixes
+  * fix python documentation
+
+**1.1.0**
+  * build python2 & python3 bindings
+  * Intel Joule support
+  * mraa_init_io() generic funtion
+  * mraa-gpio fixes
+  * edison PWM 0% improvements
+  * iio location maping fix
+
 **1.0.0**
   * Change API to enhance error checking in C. Changes include:
     - mraa_aio_read

@@ -51,7 +51,7 @@ typedef enum {
 *
 * This file defines the SPI interface for libmraa
 *
-* @snippet Spi-pot.cpp Interesting
+* @snippet spi.cpp Interesting
 */
 class Spi
 {
@@ -70,12 +70,32 @@ class Spi
         }
     }
 
+    /**
+     * Initialise SPI object using 'raw' mode. Mraa will go and grab the spidev device lablled /dev/spidev[bus].[cs]
+     *
+     * @param bus to use
+     * @param cs to use
+     */
     Spi(int bus, int cs)
     {
         m_spi = mraa_spi_init_raw(bus, cs);
 
         if (m_spi == NULL) {
             throw std::invalid_argument("Error initialising SPI bus");
+        }
+    }
+
+    /**
+     * Spi Constructor, takes a pointer to a SPI context and initialises
+     * the SPI class
+     *
+     * @param spi_context void * to SPI context
+     */
+    Spi(void* spi_context)
+    {
+        m_spi = (mraa_spi_context) spi_context;
+        if (m_spi == NULL) {
+            throw std::invalid_argument("Invalid SPI context");
         }
     }
 

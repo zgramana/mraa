@@ -2,6 +2,7 @@
  * Author: Thomas Ingleby <thomas.c.ingleby@intel.com>
  * Contributions: Jon Trulson <jtrulson@ics.com>
  *                Brendan le Foll <brendan.le.foll@intel.com>
+ *                Nicola Lunghi <nicola.lunghi@emutex.com>
  * Copyright (c) 2014 - 2015 Intel Corporation.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -102,14 +103,65 @@ uint2speed(unsigned int speed)
             return B2500000;
         case 3000000:
             return B3000000;
+#if !defined(MSYS)
         case 3500000:
             return B3500000;
         case 4000000:
             return B4000000;
+#endif
         default:
             // if we are here, then an unsupported baudrate was selected.
-            return 0;
+            return B0;
     }
+}
+
+static unsigned int speed_to_uint(speed_t speedt) {
+    struct baud_table {
+        speed_t speedt;
+        unsigned int baudrate;
+    };
+    static const struct baud_table bauds[] = {
+        { B50, 50 },
+        { B75, 75 },
+        { B110, 110 },
+        { B150, 150 },
+        { B200, 200 },
+        { B300, 300 },
+        { B600, 600 },
+        { B1200, 1200 },
+        { B1800, 1800 },
+        { B2400, 2400 },
+        { B9600, 9600 },
+        { B19200, 19200 },
+        { B38400, 38400 },
+        { B57600, 57600 },
+        { B115200, 115200 },
+        { B230400, 230400 },
+        { B460800, 460800 },
+        { B500000, 500000 },
+        { B576000, 576000 },
+        { B921600, 921600 },
+        { B1000000, 1000000 },
+        { B1152000, 1152000 },
+        { B1500000, 1500000 },
+        { B2000000, 2000000 },
+        { B2500000, 2500000 },
+        { B3000000, 3000000 },
+#if !defined(MSYS)
+        { B3500000, 3500000 },
+        { B4000000, 4000000 },
+#endif
+        { B0, 0} /* Must be last in this table */
+    };
+    int i = 0;
+
+    while (bauds[i].baudrate > 0) {
+        if (speedt == bauds[i].speedt) {
+            return bauds[i].baudrate;
+        }
+        i++;
+    }
+    return 0;
 }
 
 static mraa_uart_context
@@ -140,7 +192,7 @@ mraa_uart_init(int index)
         return NULL;
     }
 
-    if (plat->adv_func->uart_init_pre != NULL) {
+    if (plat->adv_func != NULL && plat->adv_func->uart_init_pre != NULL) {
         if (plat->adv_func->uart_init_pre(index) != MRAA_SUCCESS) {
             syslog(LOG_ERR, "uart%i: init: failure in pre-init platform hook", index);
             return NULL;
@@ -199,23 +251,43 @@ mraa_uart_init(int index)
 mraa_uart_context
 mraa_uart_init_raw(const char* path)
 {
+    mraa_result_t status = MRAA_SUCCESS;
+    mraa_uart_context dev = NULL;
+
     if (!path) {
         syslog(LOG_ERR, "uart: device path undefined");
-        return NULL;
+        status = MRAA_ERROR_INVALID_PARAMETER;
+        goto init_raw_cleanup;
     }
 
-    mraa_uart_context dev = mraa_uart_init_internal(plat == NULL ? NULL : plat->adv_func);
+    dev = mraa_uart_init_internal(plat == NULL ? NULL : plat->adv_func);
     if (dev == NULL) {
         syslog(LOG_ERR, "uart: Failed to allocate memory for context");
-        return NULL;
+        status = MRAA_ERROR_NO_RESOURCES;
+        goto init_raw_cleanup;
     }
-    dev->path = path;
+    dev->path = (char*) calloc(strlen(path)+1, sizeof(char));
+    if (dev->path == NULL) {
+        syslog(LOG_ERR, "uart: Failed to allocate memory for path");
+        status =  MRAA_ERROR_NO_RESOURCES;
+        goto init_raw_cleanup;
+    }
+    strncpy((char *) dev->path, path, strlen(path));
+
+    if (IS_FUNC_DEFINED(dev, uart_init_raw_replace)) {
+        status = dev->advance_func->uart_init_raw_replace(dev, path);
+        if (status == MRAA_SUCCESS) {
+            return dev;
+        } else {
+            goto init_raw_cleanup;
+        }
+    }
 
     // now open the device
     if ((dev->fd = open(dev->path, O_RDWR)) == -1) {
         syslog(LOG_ERR, "uart: open(%s) failed: %s", path, strerror(errno));
-        free(dev);
-        return NULL;
+        status = MRAA_ERROR_INVALID_RESOURCE;
+        goto init_raw_cleanup;
     }
 
     // now setup the tty and the selected baud rate
@@ -224,9 +296,8 @@ mraa_uart_init_raw(const char* path)
     // get current modes
     if (tcgetattr(dev->fd, &termio)) {
         syslog(LOG_ERR, "uart: tcgetattr(%s) failed: %s", path, strerror(errno));
-        close(dev->fd);
-        free(dev);
-        return NULL;
+        status = MRAA_ERROR_INVALID_RESOURCE;
+        goto init_raw_cleanup;
     }
 
     // setup for a 'raw' mode.  8N1, no echo or special character
@@ -235,14 +306,26 @@ mraa_uart_init_raw(const char* path)
     cfmakeraw(&termio);
     if (tcsetattr(dev->fd, TCSAFLUSH, &termio) < 0) {
         syslog(LOG_ERR, "uart: tcsetattr(%s) failed after cfmakeraw(): %s", path, strerror(errno));
-        close(dev->fd);
-        free(dev);
-        return NULL;
+        status = MRAA_ERROR_INVALID_RESOURCE;
+        goto init_raw_cleanup;
     }
 
     if (mraa_uart_set_baudrate(dev, 9600) != MRAA_SUCCESS) {
-        close(dev->fd);
-        free(dev);
+        status = MRAA_ERROR_INVALID_RESOURCE;
+        goto init_raw_cleanup;
+    }
+
+init_raw_cleanup:
+    if (status != MRAA_SUCCESS) {
+        if (dev != NULL) {
+            if (dev->fd >= 0) {
+                close(dev->fd);
+            }
+            if (dev->path != NULL) {
+                free((void *) dev->path);
+            }
+            free(dev);
+        }
         return NULL;
     }
 
@@ -261,9 +344,103 @@ mraa_uart_stop(mraa_uart_context dev)
     if (dev->fd >= 0) {
         close(dev->fd);
     }
+    if (dev->path != NULL) {
+        free((void *) dev->path);
+    }
 
     free(dev);
 
+    return MRAA_SUCCESS;
+}
+
+mraa_result_t
+mraa_uart_settings(int index, const char **devpath, const char **name, int* baudrate, int* databits, int* stopbits, mraa_uart_parity_t* parity, unsigned int* ctsrts, unsigned int* xonxoff) {
+    struct termios term;
+    int fd;
+
+    if (plat == NULL) {
+        return MRAA_ERROR_PLATFORM_NOT_INITIALISED;
+    }
+
+    /* Access through UART index? */
+    if (index >= 0 && index < plat->uart_dev_count) {
+        if (devpath != NULL) {
+            *devpath = plat->uart_dev[index].device_path;
+        }
+        if (name != NULL) {
+            *name = plat->uart_dev[index].name;
+        }
+    }
+
+    /* is any information that requires opening the device requested?  */
+    if (baudrate != NULL || stopbits != NULL || parity != NULL || databits != NULL || ctsrts != NULL || xonxoff != NULL) {
+       const char *dev;
+
+       /* Access UART by index or devpath? */
+       if (index >=0 && index < plat->uart_dev_count) {
+           dev = plat->uart_dev[index].device_path;
+       } else
+       if (devpath != NULL) {
+           dev = *devpath;
+       } else {
+           return MRAA_ERROR_INVALID_RESOURCE;
+       }
+
+       fd = open(dev, O_RDONLY | O_NOCTTY);
+
+       if (fd < 0) {
+           return MRAA_ERROR_INVALID_RESOURCE;
+       }
+
+       if (tcgetattr(fd, &term)) {
+           close(fd);
+           return MRAA_ERROR_INVALID_RESOURCE;
+       }
+
+       if (databits != NULL) {
+           switch (term.c_cflag & CSIZE) {
+           case CS8:
+               *databits = 8;
+               break;
+           case CS7:
+               *databits = 7;
+               break;
+           case CS6:
+               *databits = 6;
+               break;
+           case CS5:
+               *databits = 5;
+           default: /* Cannot happen? Linux kernel CSIZE mask is exactly two bits wide */
+               break;
+           }
+       }
+
+       if (stopbits != NULL) {
+           *stopbits = term.c_cflag & CSTOPB ? 2 : 1;
+       }
+
+       if (parity != NULL) {
+           if (term.c_cflag & PARODD) *parity = MRAA_UART_PARITY_ODD;
+           else
+           if (term.c_cflag & PARENB) *parity = MRAA_UART_PARITY_EVEN;
+           else
+           *parity = MRAA_UART_PARITY_NONE;
+       }
+
+       if (baudrate != NULL) {
+           *baudrate = speed_to_uint(cfgetospeed(&term));
+       }
+
+       if (ctsrts != NULL) {
+           *ctsrts = term.c_cflag & CRTSCTS;
+       }
+
+       if (xonxoff != NULL) {
+           *xonxoff = term.c_cflag & (IXON|IXOFF);
+       }
+
+       close(fd);
+    }
     return MRAA_SUCCESS;
 }
 
@@ -275,9 +452,36 @@ mraa_uart_flush(mraa_uart_context dev)
         return MRAA_ERROR_INVALID_HANDLE;
     }
 
+    if (IS_FUNC_DEFINED(dev, uart_flush_replace)) {
+        return dev->advance_func->uart_flush_replace(dev);
+    }
+
+#if !defined(PERIPHERALMAN)
     if (tcdrain(dev->fd) == -1) {
         return MRAA_ERROR_FEATURE_NOT_SUPPORTED;
     }
+#endif
+
+    return MRAA_SUCCESS;
+}
+
+mraa_result_t
+mraa_uart_sendbreak(mraa_uart_context dev, int duration)
+{
+    if (!dev) {
+        syslog(LOG_ERR, "uart: sendbreak: context is NULL");
+        return MRAA_ERROR_INVALID_HANDLE;
+    }
+
+    if (IS_FUNC_DEFINED(dev, uart_sendbreak_replace)) {
+        return dev->advance_func->uart_sendbreak_replace(dev, duration);
+    }
+
+#if !defined(PERIPHERALMAN)
+    if (tcsendbreak(dev->fd, duration) == -1) {
+        return MRAA_ERROR_INVALID_PARAMETER;
+    }
+#endif
 
     return MRAA_SUCCESS;
 }
@@ -290,6 +494,10 @@ mraa_uart_set_baudrate(mraa_uart_context dev, unsigned int baud)
         return MRAA_ERROR_INVALID_HANDLE;
     }
 
+    if (IS_FUNC_DEFINED(dev, uart_set_baudrate_replace)) {
+        return dev->advance_func->uart_set_baudrate_replace(dev, baud);
+    }
+
     struct termios termio;
     if (tcgetattr(dev->fd, &termio)) {
         syslog(LOG_ERR, "uart%i: set_baudrate: tcgetattr() failed: %s", dev->index, strerror(errno));
@@ -298,7 +506,7 @@ mraa_uart_set_baudrate(mraa_uart_context dev, unsigned int baud)
 
     // set our baud rates
     speed_t speed = uint2speed(baud);
-    if (speed == 0)
+    if (speed == B0)
     {
         syslog(LOG_ERR, "uart%i: set_baudrate: invalid baudrate: %i", dev->index, baud);
         return MRAA_ERROR_INVALID_PARAMETER;
@@ -320,6 +528,10 @@ mraa_uart_set_mode(mraa_uart_context dev, int bytesize, mraa_uart_parity_t parit
     if (!dev) {
         syslog(LOG_ERR, "uart: set_mode: context is NULL");
         return MRAA_ERROR_INVALID_HANDLE;
+    }
+
+    if (IS_FUNC_DEFINED(dev, uart_set_mode_replace)) {
+        return dev->advance_func->uart_set_mode_replace(dev, bytesize, parity, stopbits);
     }
 
     struct termios termio;
@@ -394,6 +606,33 @@ mraa_uart_set_flowcontrol(mraa_uart_context dev, mraa_boolean_t xonxoff, mraa_bo
         return MRAA_ERROR_INVALID_HANDLE;
     }
 
+    if (IS_FUNC_DEFINED(dev, uart_set_flowcontrol_replace)) {
+        return dev->advance_func->uart_set_flowcontrol_replace(dev, xonxoff, rtscts);
+    }
+
+    if (rtscts) {
+        // assign the CTS and RTS pin to UART when enabling flow control
+        if (!plat->no_bus_mux) {
+            int pos_cts = plat->uart_dev[dev->index].cts;
+            int pos_rts = plat->uart_dev[dev->index].rts;
+
+            if ((pos_cts >= 0) && (pos_rts >= 0)) {
+                if (plat->pins[pos_cts].uart.mux_total > 0) {
+                    if (mraa_setup_mux_mapped(plat->pins[pos_cts].uart) != MRAA_SUCCESS) {
+                        syslog(LOG_ERR, "uart%i: init: failed to setup muxes for CTS pin", dev->index);
+                        return MRAA_ERROR_FEATURE_NOT_SUPPORTED;
+                    }
+                }
+                if (plat->pins[pos_rts].uart.mux_total > 0) {
+                    if (mraa_setup_mux_mapped(plat->pins[pos_rts].uart) != MRAA_SUCCESS) {
+                        syslog(LOG_ERR, "uart%i: init: failed to setup muxes for RTS pin", dev->index);
+                        return MRAA_ERROR_FEATURE_NOT_SUPPORTED;
+                    }
+                }
+            }
+        }
+    }
+
     // hardware flow control
     int action = TCIOFF;
     if (xonxoff) {
@@ -434,6 +673,10 @@ mraa_uart_set_timeout(mraa_uart_context dev, int read, int write, int interchar)
         return MRAA_ERROR_INVALID_HANDLE;
     }
 
+    if (IS_FUNC_DEFINED(dev, uart_set_timeout_replace)) {
+        return dev->advance_func->uart_set_timeout_replace(dev, read, write, interchar);
+    }
+
     struct termios termio;
     // get current modes
     if (tcgetattr(dev->fd, &termio)) {
@@ -461,6 +704,10 @@ mraa_uart_set_non_blocking(mraa_uart_context dev, mraa_boolean_t nonblock)
     if (!dev) {
         syslog(LOG_ERR, "uart: non_blocking: context is NULL");
         return MRAA_ERROR_INVALID_HANDLE;
+    }
+
+    if (IS_FUNC_DEFINED(dev, uart_set_non_blocking_replace)) {
+        return dev->advance_func->uart_set_non_blocking_replace(dev, nonblock);
     }
 
     // get current flags
@@ -503,6 +750,10 @@ mraa_uart_read(mraa_uart_context dev, char* buf, size_t len)
         return MRAA_ERROR_INVALID_HANDLE;
     }
 
+    if (IS_FUNC_DEFINED(dev, uart_read_replace)) {
+        return dev->advance_func->uart_read_replace(dev, buf, len);
+    }
+
     if (dev->fd < 0) {
         syslog(LOG_ERR, "uart%i: read: port is not open", dev->index);
         return MRAA_ERROR_INVALID_RESOURCE;
@@ -519,6 +770,10 @@ mraa_uart_write(mraa_uart_context dev, const char* buf, size_t len)
         return MRAA_ERROR_INVALID_HANDLE;
     }
 
+    if (IS_FUNC_DEFINED(dev, uart_write_replace)) {
+        return dev->advance_func->uart_write_replace(dev, buf, len);
+    }
+
     if (dev->fd < 0) {
         syslog(LOG_ERR, "uart%i: write: port is not open", dev->index);
         return MRAA_ERROR_INVALID_RESOURCE;
@@ -533,6 +788,10 @@ mraa_uart_data_available(mraa_uart_context dev, unsigned int millis)
     if (!dev) {
         syslog(LOG_ERR, "uart: data_available: context is NULL");
         return 0;
+    }
+
+    if (IS_FUNC_DEFINED(dev, uart_data_available_replace)) {
+        return dev->advance_func->uart_data_available_replace(dev, millis);
     }
 
     if (dev->fd < 0) {
@@ -553,8 +812,10 @@ mraa_uart_data_available(mraa_uart_context dev, unsigned int millis)
 
     fd_set readfds;
 
+#if !defined(PERIPHERALMAN)
     FD_ZERO(&readfds);
     FD_SET(dev->fd, &readfds);
+#endif
 
     if (select(dev->fd + 1, &readfds, NULL, NULL, &timeout) > 0) {
         return 1; // data is ready

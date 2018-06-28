@@ -37,7 +37,10 @@ extern "C" {
 #include "mraa_lang_func.h"
 
 extern mraa_board_t* plat;
+extern char* platform_name;
+#if !defined(PERIPHERALMAN)
 extern mraa_iio_info_t* plat_iio;
+#endif
 extern mraa_lang_func_t* lang_func;
 
 /**
@@ -61,6 +64,20 @@ mraa_platform_t mraa_x86_platform();
  * @return mraa_platform_t of the init'ed platform
  */
 mraa_platform_t mraa_arm_platform();
+
+/**
+ * runtime detect running mips platforms
+ *
+ * @return mraa_platform_t of the init'ed platform
+ */
+mraa_platform_t mraa_mips_platform();
+
+/**
+ * setup a mock platform
+ *
+ * @return mraa_platform_t of the init'ed platform
+ */
+mraa_platform_t mraa_mock_platform();
 
 /**
  * runtime detect running usb platform extender
@@ -131,6 +148,35 @@ mraa_boolean_t mraa_link_targets(const char* filename, const char* targetname);
  * @return the matching i2c-dev bus id or -1
  */
 int mraa_find_i2c_bus(const char* devname, int startfrom);
+
+/**
+ * helper function to wrap strtol for our basic usage
+ *
+ * @param string representing int
+ * @param converted string
+ * @return Result of the operation
+ */
+mraa_result_t mraa_atoi(char* intStr, int* value);
+
+/**
+ * helper function to find an i2c bus based on pci data
+ *
+ * @param pci_device
+ * @param pci_id on pci_device
+ * @param i2c adapter name & number
+ * @return the matching i2c-dev bus id or -1
+ */
+int mraa_find_i2c_bus_pci(const char* pci_device, const char *pci_id, const char* adapter_name);
+
+/**
+ * helper function to find the uart device based on pci data
+ *
+ * @param pci_dev_path points to the location of tty device which corresponds
+ * to the uart device available on the platform
+ * @param dev_name as retrieved from pci_dev_path
+ * @return Result of the operation
+ */
+mraa_result_t mraa_find_uart_bus_pci(const char* pci_dev_path, char** dev_name);
 
 #if defined(IMRAA)
 /**

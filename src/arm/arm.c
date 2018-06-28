@@ -26,11 +26,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "mraa_internal.h"
-#include "arm/raspberry_pi.h"
-#include "arm/beaglebone.h"
-#include "arm/banana.h"
 #include "arm/96boards.h"
+#include "arm/de_nano_soc.h"
+#include "arm/banana.h"
+#include "arm/beaglebone.h"
+#include "arm/phyboard.h"
+#include "arm/raspberry_pi.h"
+#include "mraa_internal.h"
 
 
 mraa_platform_t
@@ -46,42 +48,57 @@ mraa_arm_platform()
             if (strncmp(line, "Hardware", 8) == 0) {
                 if (strstr(line, "BCM2708")) {
                     platform_type = MRAA_RASPBERRY_PI;
-                }
-                else if (strstr(line, "BCM2709")) {
+                } else if (strstr(line, "BCM2709")) {
                     platform_type = MRAA_RASPBERRY_PI;
-                }
-                else if (strstr(line, "Generic AM33XX")) {
-                    platform_type = MRAA_BEAGLEBONE;
-                }
-                else if (strstr(line, "HiKey Development Board")) {
-                    platform_type = MRAA_96BOARDS;
-                }
-                else if (strstr(line, "sun7i")) {
-                    if (mraa_file_contains("/sys/firmware/devicetree/base/model", "Banana Pro")) {
-                        platform_type = MRAA_BANANA;
+                } else if (strstr(line, "BCM2835")) {
+                    platform_type = MRAA_RASPBERRY_PI;
+                } else if (strstr(line, "Generic AM33XX")) {
+                    if(mraa_file_contains("/proc/device-tree/model", "phyBOARD-WEGA")) {
+                        platform_type = MRAA_PHYBOARD_WEGA;
+                    } else {
+                        platform_type = MRAA_BEAGLEBONE;
                     }
-                    else if (mraa_file_contains("/sys/firmware/devicetree/base/model", "Banana Pi")) {
+                } else if (strstr(line, "HiKey Development Board")) {
+                    platform_type = MRAA_96BOARDS;
+                } else if (strstr(line, "s900")) {
+                    platform_type = MRAA_96BOARDS;
+                } else if (strstr(line, "sun7i")) {
+                    if (mraa_file_contains("/proc/device-tree/model", "Banana Pro")) {
+                        platform_type = MRAA_BANANA;
+                    } else if (mraa_file_contains("/proc/device-tree/model",
+                                                  "Banana Pi")) {
                         platform_type = MRAA_BANANA;
                     }
                     // For old kernels
                     else if (mraa_file_exist("/sys/class/leds/green:ph24:led1")) {
                         platform_type = MRAA_BANANA;
                     }
+                } else if (strstr(line, "DE0/DE10-Nano-SoC")) {
+                        platform_type = MRAA_DE_NANO_SOC;
                 }
             }
-
         }
         fclose(fh);
     }
     free(line);
 
-    /* Get compatible string from Device tree for boards that dont have enough info in /proc/cpuinfo */
+    /* Get compatible string from Device tree for boards that dont have enough info in /proc/cpuinfo
+     */
     if (platform_type == MRAA_UNKNOWN_PLATFORM) {
-        if (mraa_file_contains("/sys/firmware/devicetree/base/compatible", "qcom,apq8016-sbc"))
-                   platform_type = MRAA_96BOARDS;
-        else if (mraa_file_contains("/sys/firmware/devicetree/base/model", "HiKey Development Board"))
-                   platform_type = MRAA_96BOARDS;
-     }
+        if (mraa_file_contains("/proc/device-tree/compatible", "qcom,apq8016-sbc"))
+            platform_type = MRAA_96BOARDS;
+        else if (mraa_file_contains("/proc/device-tree/compatible", "arrow,apq8096-db820c"))
+            platform_type = MRAA_96BOARDS;
+        else if (mraa_file_contains("/proc/device-tree/model",
+                                    "HiKey Development Board"))
+            platform_type = MRAA_96BOARDS;
+        else if (mraa_file_contains("/proc/device-tree/model", "HiKey960"))
+            platform_type = MRAA_96BOARDS;
+        else if (mraa_file_contains("/proc/device-tree/model", "s900"))
+            platform_type = MRAA_96BOARDS;
+        else if (mraa_file_contains("/proc/device-tree/compatible", "raspberrypi,"))
+            platform_type = MRAA_RASPBERRY_PI;
+    }
 
     switch (platform_type) {
         case MRAA_RASPBERRY_PI:
@@ -90,11 +107,17 @@ mraa_arm_platform()
         case MRAA_BEAGLEBONE:
             plat = mraa_beaglebone();
             break;
+        case MRAA_PHYBOARD_WEGA:
+            plat = mraa_phyboard();
+            break;
         case MRAA_BANANA:
             plat = mraa_banana();
             break;
         case MRAA_96BOARDS:
             plat = mraa_96boards();
+            break;
+        case MRAA_DE_NANO_SOC:
+            plat = mraa_de_nano_soc();
             break;
         default:
             plat = NULL;

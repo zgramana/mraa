@@ -38,14 +38,14 @@ namespace mraa
  * selecting the correct address
  * @htmlinclude i2c.txt
  *
- * @snippet I2c-compass.cpp Interesting
+ * @snippet i2c.cpp Interesting
  */
 class I2c
 {
   public:
     /**
      * Instantiates an i2c bus. Multiple instances of the same bus can
-     * exist and the bus is not guarranteed to be on the correct address
+     * exist and the bus is not guaranteed to be on the correct address
      * before read/write.
      *
      * @param bus The i2c bus to use
@@ -62,9 +62,21 @@ class I2c
             throw std::invalid_argument("Invalid i2c bus");
         }
     }
+    /**
+     * I2C constructor, takes a pointer to a I2C context and initialises the I2C class
+     *
+     * @param i2c_context void * to an I2C context
+     */
+    I2c(void* i2c_context)
+    {
+        m_i2c = (mraa_i2c_context) i2c_context;
+        if (m_i2c == NULL) {
+            throw std::invalid_argument("Invalid I2C context");
+        }
+    }
 
     /**
-     * Closes the I2c Bus used. This does not guarrantee the bus will not
+     * Closes the I2c Bus used. This does not guarantee the bus will not
      * be usable by anyone else or communicates this disconnect to any
      * slaves.
      */

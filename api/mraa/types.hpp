@@ -50,14 +50,24 @@ typedef enum {
     A96BOARDS = 9,             /**< Linaro 96boards, A prefix for 'ARM' since not allowed numerical */
     INTEL_SOFIA_3GR = 10,      /**< The Intel SoFIA 3GR */
     INTEL_CHERRYHILLS = 11,    /**< The Intel Braswell Cherryhills */
+    INTEL_UP = 12,             /**< The UP Board */
+    INTEL_JOULE_EXPANSION = 13,/**< The Intel Joule Expansion Board */
+    PHYBOARD_WEGA = 14,        /**< The phyBOARD-Wega */
+    DE_NANO_SOC = 15,          /**< Terasic DE-Nano-SoC Board */
+    INTEL_UP2 = 16,            /**< The UP^2 Board */
+    MTK_LINKIT = 17,           /**< Mediatek MT7688 based Linkit boards */
+    MTK_OMEGA2 = 18,           /**< MT7688 based Onion Omega2 board */
+    IEI_TANK = 19,             /**< IEI Tank System*/
 
     FTDI_FT4222 = 256,         /**< FTDI FT4222 USB to i2c bridge */
 
+    GROVEPI = 1024,            /**< GrovePi shield i2c bridge */
     GENERIC_FIRMATA = 1280,    /**< Firmata uart platform/bridge */
 
+    ANDROID_PERIPHERALMANAGER = 95, /**< Android Things peripheral manager platform */
+    MOCK_PLATFORM = 96,        /**< Mock platform, which requires no real hardware */
     NULL_PLATFORM = 98,
-    UNKNOWN_PLATFORM =
-    99 /**< An unknown platform type, typically will load INTEL_GALILEO_GEN1 */
+    UNKNOWN_PLATFORM = 99 /**< An unknown platform type, typically will load INTEL_GALILEO_GEN1 */
 } Platform;
 
 /**
@@ -226,7 +236,7 @@ typedef enum {
 } Pinmodes;
 
 /**
- * Enum reprensenting different i2c speeds/modes
+ * Enum representing different i2c speeds/modes
  */
 typedef enum {
     I2C_STD = 0,  /**< up to 100Khz */
@@ -234,6 +244,9 @@ typedef enum {
     I2C_HIGH = 2  /**< up to 3.4Mhz */
 } I2cMode;
 
+/**
+ * Enum representing different uart parity states
+ */
 typedef enum {
     UART_PARITY_NONE = 0,
     UART_PARITY_EVEN = 1,

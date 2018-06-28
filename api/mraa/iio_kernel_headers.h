@@ -106,16 +106,20 @@ enum iio_event_direction {
 };
 
 //linux/iio/events.h
+#if defined(MSYS)
+#define __USE_LINUX_IOCTL_DEFS
+#include <sys/ioctl.h>
+#else
 #include <linux/ioctl.h>
+#endif
 
 /**
  * struct iio_event_data - The actual event being pushed to userspace
- * @id:		event identifier
- * @timestamp:	best estimate of time of event occurrence (often from
- *		the interrupt handler)
  */
 struct iio_event_data {
+  /** event identifier */
 	unsigned long long int	id;
+  /** best estimate of time of event occurrence (often from the interrupt handler) */
 	long long int	timestamp;
 };
 

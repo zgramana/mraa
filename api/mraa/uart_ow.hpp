@@ -37,7 +37,7 @@ namespace mraa
  *
  * This file defines the UartOW (UART to Dallas 1-wire) interface for libmraa
  *
- * @snippet UartOW.cpp Interesting
+ * @snippet uart_ow.cpp Interesting
  */
 class UartOW
 {
@@ -46,8 +46,8 @@ class UartOW
      * UartOW Constructor, takes a pin number which will map directly to the
      * linux uart number, this 'enables' the uart, nothing more
      *
-     * @throws std::invalid_argument in case of error
      * @param uart the index of the uart to use
+     * @throws std::invalid_argument in case of error
      */
     UartOW(int uart)
     {
@@ -62,8 +62,8 @@ class UartOW
      * UartOW Constructor, takes a string to the path of the serial
      * interface that is needed.
      *
-     * @throws std::invalid_argument in case of error
      * @param path the file path for the UART to use
+     * @throws std::invalid_argument in case of error
      */
     UartOW(std::string path)
     {
@@ -233,7 +233,7 @@ class UartOW
     mraa::Result
     command(uint8_t command, std::string id)
     {
-        if (id.empty() == 0)
+        if (id.empty())
             return (mraa::Result) mraa_uart_ow_command(m_uart, command, NULL);
         else {
             if (id.size() != 8) {
@@ -241,7 +241,7 @@ class UartOW
                 throw std::invalid_argument(std::string(__FUNCTION__) +
                                             ": id must be 8 bytes only");
             }
-            return (mraa::Result) mraa_uart_ow_command(m_uart, command, (uint8_t*) id.c_str());
+            return (mraa::Result) mraa_uart_ow_command(m_uart, command, (uint8_t*) id.data());
         }
     }
 
@@ -268,7 +268,7 @@ class UartOW
     uint8_t
     crc8(std::string buffer)
     {
-        return mraa_uart_ow_crc8((uint8_t*) buffer.c_str(), buffer.size());
+        return mraa_uart_ow_crc8((uint8_t*) buffer.data(), buffer.size());
     }
 
   private:
